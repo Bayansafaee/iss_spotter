@@ -1,8 +1,5 @@
 const request = require("request");
 
-// URL for retrieving our IPv4 IP address in JSON format.
-const url = 'https://api.ipify.org?format=json';
-
 /**
  * Makes a single API request to retrieve the user's IP address.
  * Input:
@@ -12,6 +9,8 @@ const url = 'https://api.ipify.org?format=json';
  *   - The IP address as a string (null if error). Example: "162.245.144.188"
  */
 const fetchMyIP = (callback) => {
+  // URL for retrieving our IPv4 IP address in JSON format.
+  const url = 'https://api.ipify.org?format=json';
   // use request to fetch IP address from JSON API
   request(url, (error, response, body) => {
     // error can be set if invalid domain, user is offline, etc.
@@ -40,8 +39,10 @@ const fetchMyIP = (callback) => {
  *   - The lat and lng as an object (null if error). Example:
  *     { latitude: '49.27670', longitude: '-123.13000' }
  */
- const fetchCoordsByIP = (ip, callback) => {
-  request(`http://ipwho.is/${ip}`, (error, response, body) => {
+const fetchCoordsByIP = (ip, callback) => {
+  const url = `http://ipwho.is/${ip}`;
+
+  request(url, (error, response, body) => {
 
     if (error) {
       callback(error, null);
@@ -54,7 +55,7 @@ const fetchMyIP = (callback) => {
       const message = `Success status was ${parsed.success}. Server message says: ${parsed.message} when fetching for IP ${parsed.ip}`;
       callback(Error(message), null);
       return;
-    } 
+    }
 
     const { latitude, longitude } = parsed;
 
@@ -72,7 +73,7 @@ const fetchMyIP = (callback) => {
  *   - The fly over times as an array of objects (null if error). Example:
  *     [ { risetime: 134564234, duration: 600 }, ... ]
  */
- const fetchISSFlyOverTimes = (coords, callback) => {
+const fetchISSFlyOverTimes = (coords, callback) => {
   const url = `https://iss-pass.herokuapp.com/json/?lat=${coords.latitude}&lon=${coords.longitude}`;
 
   request(url, (error, response, body) => {
@@ -91,8 +92,31 @@ const fetchMyIP = (callback) => {
   });
 };
 
+
+const nextISSTimesForMyLocation = (callback) => {
+  fetchMyIP((error, ip) => {
+    if (error) {
+      return callback(error, null);
+    }
+
+    fetchCoordsByIP(ip, (error, coords) => {
+      if (error) {
+        return callback(error, null);
+      }
+
+      fetchISSFlyOverTimes(coords, (error, flyOver) => {
+        if (error) {
+          return callback(error, null);
+        }
+
+        callback(null, flyOver);
+      });
+    });
+  });
+};
+
+
+
 module.exports = {
-  fetchMyIP,
-  fetchCoordsByIP,
-  fetchISSFlyOverTimes
+  nextISSTimesForMyLocation
 };
